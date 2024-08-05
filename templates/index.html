@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Chat</title>
+</head>
+<body>
+    <h1>Video Chat</h1>
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localVideo.srcObject = stream;
+
+                // Use WebRTC to send the stream to the server
+                const peerConnection = new RTCPeerConnection();
+                stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', event.candidate);
+                    }
+                };
+
+                peerConnection.ontrack = event => {
+                    remoteVideo.srcObject = event.streams[0];
+                };
+
+                socket.on('offer', async (offer) => {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.emit('answer', answer);
+                });
+
+                socket.on('answer', async (answer) => {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                });
+
+                socket.on('ice-candidate', async (candidate) => {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (e) {
+                        console.error('Error adding received ice candidate', e);
+                    }
+                });
+
+                socket.emit('ready');
+            })
+            .catch(error => {
+                console.error('Error accessing media devices.', error);
+            });
+    </script>
+</body>
+</html>
