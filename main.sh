@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Build the Docker image
-docker build -t flask-video-chat-app .
+docker build -t flask-vtt .
 
 # Run the Docker container
-docker run -p 8080:8080 flask-video-chat-app &
+docker run -p 8080:8080 flask-vtt
 
 # Determine the URL to access the webpage
 if [ -n "$CODESPACE_NAME" ]; then

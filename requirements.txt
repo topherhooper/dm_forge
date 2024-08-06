@@ -1,4 +1,2 @@
-flask
+flask 
 flask-socketio
-opencv-python
-numpy
