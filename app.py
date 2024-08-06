@@ -3,11 +3,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
-socketio = SocketIO(app)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @socketio.on('connect')
 def handle_connect():
@@ -25,7 +21,7 @@ def handle_set_grid_size(data):
 def handle_move_token(data):
     emit('update_token_position', data, broadcast=True)
 
-@app.route('/game')
+@app.route('/')
 def game():
     return render_template('game.html')
 

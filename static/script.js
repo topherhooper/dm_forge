@@ -3,6 +3,7 @@ const canvas = document.getElementById('map');
 const ctx = canvas.getContext('2d');
 let gridSize = 50;
 let tokens = {};
+const emojis = ['😀', '😂', '😍', '😎', '😜', '🤔', '😢', '😡', '🤖', '👻'];
 
 socket.on('connect', () => {
     console.log('Connected to server');
@@ -13,28 +14,10 @@ socket.on('update_grid_size', (data) => {
     drawGrid();
 });
 
-socket.on('update_tokens', (data) => {
-    tokens[data.tokenName] = { x: data.x, y: data.y };
-    drawTokens();
-});
-
 socket.on('update_token_position', (data) => {
     tokens[data.tokenName] = { x: data.x, y: data.y };
     drawTokens();
 });
-
-function setGridSize() {
-    const size = document.getElementById('grid-size').value;
-    socket.emit('set_grid_size', { gridSize: parseInt(size) });
-}
-
-function addToken() {
-    const name = document.getElementById('token-name').value;
-    const x = parseInt(document.getElementById('token-x').value);
-    const y = parseInt(document.getElementById('token-y').value);
-    socket.emit('add_token', { tokenName: name, x: x, y: y });
-    console.log(`Token added: ${name} at (${x}, ${y})`);
-}
 
 function drawGrid() {
     console.log('Drawing grid');
@@ -59,28 +42,43 @@ function drawTokens() {
     console.log('Drawing tokens');
     for (const [name, pos] of Object.entries(tokens)) {
         console.log(`Drawing token: ${name} at (${pos.x}, ${pos.y})`);
-        ctx.fillStyle = 'red';
-        ctx.fillRect(pos.x, pos.y, gridSize, gridSize);
-        ctx.fillStyle = 'black';
         ctx.fillText(name, pos.x, pos.y + gridSize / 2);
     }
 }
 
-canvas.addEventListener('click', (event) => {
-    console.log('Canvas clicked');
+function createEmojiTokens() {
+    const tokenContainer = document.getElementById('token-container');
+    emojis.forEach((emoji, index) => {
+        const token = document.createElement('div');
+        token.className = 'token';
+        token.draggable = true;
+        token.innerText = emoji;
+        token.id = `token-${index}`;
+        token.addEventListener('dragstart', handleDragStart);
+        tokenContainer.appendChild(token);
+    });
+}
+
+function handleDragStart(event) {
+    event.dataTransfer.setData('text/plain', event.target.id);
+}
+
+canvas.addEventListener('dragover', (event) => {
+    event.preventDefault();
+});
+
+canvas.addEventListener('drop', (event) => {
+    event.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    console.log(`Click position: (${x}, ${y})`);
-    for (const [name, pos] of Object.entries(tokens)) {
-        if (x >= pos.x && x <= pos.x + gridSize && y >= pos.y && y <= pos.y + gridSize) {
-            const newX = Math.floor(Math.random() * canvas.width);
-            const newY = Math.floor(Math.random() * canvas.height);
-            console.log(`Moving token: ${name} to (${newX}, ${newY})`);
-            socket.emit('move_token', { tokenName: name, x: newX, y: newY });
-            break;
-        }
-    }
+    const tokenId = event.dataTransfer.getData('text/plain');
+    const tokenElement = document.getElementById(tokenId);
+    const tokenName = tokenElement.innerText;
+    tokens[tokenName] = { x: x, y: y };
+    socket.emit('move_token', { tokenName: tokenName, x: x, y: y });
+    drawTokens();
 });
 
+createEmojiTokens();
 drawGrid();
