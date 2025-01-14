@@ -1,63 +1,62 @@
+"""
+app.py
+
+This is the main application file for the Flask web application. It sets up the Flask app, 
+configures SocketIO for real-time communication, and defines the routes and event handlers.
+"""
 
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
-import threading
-import cv2
-import socket
-import numpy as np
-import struct
 
 app = Flask(__name__)
-socketio = SocketIO(app)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected')
+    """
+    Event handler for client connection.
+    """
+    print("Client connected")
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('Client disconnected')
+    """
+    Event handler for client disconnection.
+    """
+    print("Client disconnected")
 
-def video_chat_server():
-    # Create a socket object
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('0.0.0.0', 8081))  # Use a different port for video chat
-    server_socket.listen(1)
+@socketio.on('set_grid_size')
+def handle_set_grid_size(data):
+    """
+    Event handler for setting the grid size.
+    Broadcasts the new grid size to all connected clients.
+    
+    Args:
+        data (dict): Dictionary containing the grid size.
+    """
+    emit('update_grid_size', data, broadcast=True)
 
-    print("Video chat server listening on port 8081")
+@socketio.on('move_token')
+def handle_move_token(data):
+    """
+    Event handler for moving a token.
+    Broadcasts the new token position to all connected clients.
+    
+    Args:
+        data (dict): Dictionary containing the token name and its new position.
+    """
+    emit('update_token_position', data, broadcast=True)
 
-    # Accept a connection
-    conn, addr = server_socket.accept()
-    print(f"Connection from {addr}")
-
-    # Capture video from the webcam
-    cap = cv2.VideoCapture(0)
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Encode the frame
-        encoded, buffer = cv2.imencode('.jpg', frame)
-        data = np.array(buffer)
-        stringData = data.tobytes()
-
-        # Send the size of the frame first
-        conn.sendall(struct.pack("L", len(stringData)) + stringData)
-
-    cap.release()
-    conn.close()
-    server_socket.close()
+@app.route('/')
+def game():
+    """
+    Route for the main game page.
+    Renders the game.html template.
+    
+    Returns:
+        str: Rendered HTML template for the game page.
+    """
+    return render_template('game.html')
 
 if __name__ == '__main__':
-    # Start the video chat server in a separate thread
-    video_chat_thread = threading.Thread(target=video_chat_server)
-    video_chat_thread.start()
-
-    # Run the Flask server
     socketio.run(app, host='0.0.0.0', port=8080)
