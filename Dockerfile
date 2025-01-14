@@ -25,3 +25,9 @@ COPY . /app
 
 # Run app.py when the container launches
 CMD ["flask", "run", "--host=0.0.0.0", "--port=8080"]
+
+# Documentation on how to build and run the Docker container
+# To build the Docker image, run:
+# docker build -t flask-vtt .
+# To run the Docker container, run:
+# docker run -p 8080:8080 flask-vtt

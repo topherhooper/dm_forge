@@ -1,2 +1,6 @@
 flask 
 flask-socketio
+
+# Dependencies
+# flask: A micro web framework written in Python.
+# flask-socketio: Enables real-time communication in Flask applications using WebSockets.
